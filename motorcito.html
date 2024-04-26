@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Velocidad Motorcito</title>
+</head>
+<body>
+    <h1>Velocidad Motorcito</h1>
+
+    <div id="status">Desconectado</div><br>
+    <div id="display"></div> 
+    <input type="range" id="speedRange" min="-255" max="255" value="0"><br><br>
+    <button onclick="command(0)" type="button">Detener</button><br><br>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
+
+    <script type="text/javascript">
+        var clientId = 'client_id_' + Math.floor((Math.random() * 1000000) +1);
+        client = new Paho.MQTT.Client("broker.emqx.io", 8084, clientId);
+
+        client.onConnectionLost = onConnectionLost;
+        client.onMessageArrived = onMessageArrived;
+
+        var options ={
+            useSSL: true,
+            userName : "Yoalli",
+            password : "123",
+            onSuccess: onConnect,
+            onFailure: doFail
+        }
+
+        client.connect(options);
+
+        function onConnect() {
+    console.log("Conexión exitosa");
+    $("#status").html("Conexión Establecida")
+    client.subscribe("salidaYoalli");
+
+    // Ahora que estamos conectados, podemos enviar el mensaje
+    $('#speedRange').on('input', function() {
+        var speed = $(this).val();
+        console.log("Velocidad: " + speed);
+        command(speed);
+    });
+}
+
+        function onMessageArrived(message) {
+            console.log("Un mensaje ha llegado: " + message.payloadString);
+            $("#display").html(message.payloadString);
+        }
+
+        function doFail(e) {
+            console.log(e);
+        }
+
+        function onConnectionLost(responseObject) {
+            if (responseObject.errorCode !== 0) {
+                console.log("onConnectionLost: " + responseObject.errorMessage);
+            }
+        }
+
+        $('#speedRange').on('input', function() {
+            var speed = $(this).val();
+            console.log("Velocidad: " + speed);
+            command(speed);
+        });
+
+        function command(speed){
+    console.log(speed);
+    // Solo enviamos el mensaje si estamos conectados
+    if (client.isConnected()) {
+        message = new Paho.MQTT.Message(speed + "");
+        message.destinationName = "entrada :)";
+        client.send(message);
+    } else {
+        console.log("El cliente MQTT no está conectado.");
+    }
+}
+        // Detener el motor cuando se hace clic en el botón de detener
+        $('button').click(function() {
+            var speed = 0;
+            console.log("Detener motor");
+            command(speed);
+            $('#speedRange').val(0); // Actualizar el control deslizante a la posición de detener
+        });
+
+    </script>
+</body>
+</html>
